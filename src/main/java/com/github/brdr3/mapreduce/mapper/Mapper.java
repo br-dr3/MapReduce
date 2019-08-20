@@ -56,12 +56,15 @@ public class Mapper {
         DatagramPacket packet;
         String jsonMessage;
         Message message;
-        byte buffer[] = new byte[10000];
+
+        byte buffer[] = new byte[65507];
+
         Gson gson = new Gson();
 
         try {
             socket = new DatagramSocket(mapperUser.getPort());
             while (true) {
+                sleep();
                 packet = new DatagramPacket(buffer, buffer.length, 
                                             mapperUser.getAddress(), 
                                             mapperUser.getPort());
@@ -81,6 +84,7 @@ public class Mapper {
     
     public void send() {
         while (true) {
+            sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
                 sendMessage(urls);
@@ -116,6 +120,7 @@ public class Mapper {
     
     public void process() {
         while(true) {
+            sleep();
             Message m = processQueue.poll();
             if(m != null) {
                 processMessage(m);
@@ -165,6 +170,14 @@ public class Mapper {
     private void cleanBuffer(byte[] buffer) {
         for(int i = 0; i < buffer.length; i++) {
             buffer[i] = 0;
+        }
+    }
+
+    private  void sleep(){
+        try {
+            Thread.sleep(1);
+        } catch ( InterruptedException e ){
+            System.out.println(e);
         }
     }
 }

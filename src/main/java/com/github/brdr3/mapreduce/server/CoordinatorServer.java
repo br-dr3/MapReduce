@@ -6,10 +6,16 @@ import com.github.brdr3.mapreduce.util.Message.MessageBuilder;
 import com.github.brdr3.mapreduce.util.User;
 import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
+
+import java.lang.reflect.Array;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Logger;
+
 
 public class CoordinatorServer {
     
@@ -22,7 +28,9 @@ public class CoordinatorServer {
     
     private ConcurrentLinkedQueue<Message> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
-    
+
+    static Logger logger = Logger.getLogger("log4j.properties");
+
     public CoordinatorServer(int mappers) {
         
         sender = new Thread() {
@@ -54,6 +62,8 @@ public class CoordinatorServer {
         
         senderQueue = new ConcurrentLinkedQueue<>();
         processQueue = new ConcurrentLinkedQueue<>();
+
+        logger.info("CoordinatorServer instanciado com sucesso");
     }
     
     public void start() {
@@ -64,6 +74,7 @@ public class CoordinatorServer {
     
     public void send() {
         while (true) {
+            sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
                 sendMessage(urls);
@@ -81,9 +92,11 @@ public class CoordinatorServer {
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                                     m.getTo().getPort());
         try {
+            logger.info("CoordinatorServer enviando mensagem buffersize: " + buffer.length + " toAddr: " + m.getTo().getAddress() + " toPort" + m.getTo().getPort());
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
+            logger.info("CoordinatorServer enviando mensagem sucesso buffersize: " + buffer.length + " toAddr: " + m.getTo().getAddress() + " toPort" + m.getTo().getPort());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -100,6 +113,8 @@ public class CoordinatorServer {
         try {
             socket = new DatagramSocket(coordinatorServer.getPort());
             while (true) {
+                sleep();
+                logger.info("Recebendo mensagem buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
                 packet = new DatagramPacket(buffer, buffer.length, coordinatorServer.getAddress(), coordinatorServer.getPort());
 
                 socket.receive(packet);
@@ -109,14 +124,17 @@ public class CoordinatorServer {
 
                 processQueue.add(message);
                 cleanBuffer(buffer);
+                logger.info("Sucesso buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
             }
         } catch (Exception ex) {
+            logger.warning("Erro " + ex + " buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
             ex.printStackTrace();
         }
     }
     
     public void process() {
         while (true) {
+            sleep();
             Message m = processQueue.poll();
             if(m != null) {
                 processMessage(m);
@@ -125,13 +143,18 @@ public class CoordinatorServer {
     }
     
     public void processMessage(Message m) {
-        LinkedList[] mapperLists;
+        List[] mapperLists;
         LinkedList<Message> messages = new LinkedList<>();
-        
-        if(m.getContent() instanceof LinkedList)
-            mapperLists = divideList((LinkedList<String>) m.getContent());
-        else
+        logger.info("Processando mensagem");
+
+        if(m.getContent() instanceof ArrayList) {
+            mapperLists = (List[])m.getContent();
+
+        }
+        else {
+            logger.warning("CoordinatorServer Processando mensagem não conseguiu instanciar");
             return;
+        }
         
         for(int i = 0; i < mapperLists.length; i++) {
             if(mapperLists[i] != null) {
@@ -146,12 +169,13 @@ public class CoordinatorServer {
         }
         
         for(Message message: messages) {
+            logger.info("Mensagem enviando para fila id: " + message.getId());
             message.setEnd(new Long(messages.size()));
             senderQueue.add(message);
         }
     }
     
-    private LinkedList[] divideList(LinkedList<String> urls) {
+    private LinkedList[] divideList(List<String> urls) {
         LinkedList[] mapperList = new LinkedList [mapper.length];
         int size = mapperList.length;
         
@@ -169,6 +193,14 @@ public class CoordinatorServer {
     private void cleanBuffer(byte[] buffer) {
         for(int i = 0; i < buffer.length; i++) {
             buffer[i] = 0;
+        }
+    }
+
+    private void sleep(){
+        try {
+            Thread.sleep(100);
+        } catch ( InterruptedException e ){
+            System.out.println(e);
         }
     }
 }

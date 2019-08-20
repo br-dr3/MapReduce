@@ -54,6 +54,7 @@ public class ReducerServer {
     
     public void send() {
         while (true) {
+            sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
                 sendMessage(urls);
@@ -96,6 +97,7 @@ public class ReducerServer {
         try {
             socket = new DatagramSocket(reducerServer.getPort());
             while (true) {
+                sleep();
                 packet = new DatagramPacket(buffer, buffer.length, reducerServer.getAddress(), reducerServer.getPort());
 
                 socket.receive(packet);
@@ -113,6 +115,7 @@ public class ReducerServer {
     
     public void process() {
         while (true) {
+            sleep();
             Message m = processQueue.poll();
             if(m != null) {
                 processMessage(m);
@@ -174,6 +177,14 @@ public class ReducerServer {
     private void cleanBuffer(byte[] buffer) {
         for(int i = 0; i < buffer.length; i++) {
             buffer[i] = 0;
+        }
+    }
+
+    private void sleep(){
+        try {
+            Thread.sleep(1);
+        } catch ( InterruptedException e ){
+            System.out.println(e);
         }
     }
 }
