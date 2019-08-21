@@ -1,8 +1,8 @@
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/server/CoordinatorServer.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/Message.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/main/Main.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/mapper/Mapper.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/client/Client.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/server/ReducerServer.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/constants/Constants.java
-/home/theo/Documents/ufabc/sistemas_distribuidos/repositorios/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/User.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/server/CoordinatorServer.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/server/ReducerServer.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/User.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/Message.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/util/constants/Constants.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/mapper/Mapper.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/client/Client.java
+/home/bluescreen/workspace/2019Q2/SistemasDistribuidos/ExProg3/MapReduce/src/main/java/com/github/brdr3/mapreduce/main/Main.java

@@ -17,6 +17,8 @@ public class User {
             ex.printStackTrace();
         }
         
+        System.out.println(this.address);
+        
         this.port = port;
     }
 

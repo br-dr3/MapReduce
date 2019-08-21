@@ -10,10 +10,13 @@ import com.google.gson.Gson;
 import java.lang.reflect.Array;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -57,7 +60,11 @@ public class CoordinatorServer {
         mapper = new Mapper[mappers];
         
         for(int i = 0; i < mappers; i++) {
-            mapper[i] = new Mapper(new User(i+1, "localhost", 14020+10*i));
+            try {
+                mapper[i] = new Mapper(new User(i+1, "localhost", 14020+10*i));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
             mapper[i].start();
         }
         

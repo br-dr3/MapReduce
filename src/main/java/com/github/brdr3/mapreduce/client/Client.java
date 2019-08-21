@@ -9,29 +9,52 @@ import com.google.gson.internal.LinkedTreeMap;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.*;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
 public class Client {
+
     private final User thisUser;
     private final Thread sender;
     private final Thread receiver;
     private final Thread interactor;
     private final Thread processor;
-    
+
     private ConcurrentLinkedQueue<ArrayList<String>> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
 
     static Logger logger = Logger.getLogger("log4j.properties");
 
     public Client() {
-        
+
         try {
-            String addr = "localhost";
+            String address = null;
+            Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
+            
+            while(en.hasMoreElements() && address == null) {
+                NetworkInterface ni = en.nextElement();
+                Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+
+                while (inetAddresses.hasMoreElements() && address == null) {
+                    InetAddress ia = inetAddresses.nextElement();
+                    if (!ia.isLinkLocalAddress()) {
+                        address = ia.getHostAddress();
+                    }
+                }
+            }
+
             int port = 14000;
-            thisUser = new User(0, addr, port);
-            logger.info("Cliente instanciada com sucesso addr: " + addr + " port: " + port);
+            thisUser = new User(0, address, port);
+            logger.info("Cliente instanciada com sucesso addr: " + address + " port: " + port);
         } catch (Exception ex) {
             throw new RuntimeException("It was not possible to create the User.");
         }
@@ -63,11 +86,11 @@ public class Client {
                 process();
             }
         };
-        
+
         senderQueue = new ConcurrentLinkedQueue<>();
         processQueue = new ConcurrentLinkedQueue<>();
     }
-    
+
     public void start() {
         logger.info("CLiente start ");
         sender.start();
@@ -75,44 +98,45 @@ public class Client {
         interactor.start();
         processor.start();
     }
-    
+
     public void send() {
         while (true) {
             ArrayList urls = senderQueue.poll();
             sleep();
-            if(urls != null) {
+            if (urls != null) {
                 sendMessage(urls);
             }
         }
     }
-    
+
     public void sendMessage(ArrayList<String> urls) {
-        logger.info("CLiente enviando mensagem ");
+        logger.info("Cliente enviando mensagem ");
         Gson gson = new Gson();
         Message m = new MessageBuilder().from(thisUser)
-                                        .to(Constants.coordinatorServer)
-                                        .content(urls)
-                                        .requestor(thisUser)
-                                        .build();
-        
+                .to(Constants.coordinatorServer)
+                .content(urls)
+                .requestor(thisUser)
+                .build();
+
         String jsonMessage = gson.toJson(m);
         byte buffer[] = new byte[65507];
         DatagramSocket socket;
         DatagramPacket packet;
         buffer = jsonMessage.getBytes();
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
-                                    m.getTo().getPort());
+                m.getTo().getPort());
         try {
             logger.info("Cliente enviando mensagem bufferSize:" + buffer.length + " to addrs: " + m.getTo().getAddress() + " to port: " + m.getTo().getPort());
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
+            logger.info("Mensagem enviada:" + m.toString());
         } catch (Exception ex) {
-            logger.warning("Cliente não conseguiu enviar mensagem " + ex );
+            logger.warning("Cliente não conseguiu enviar mensagem " + ex);
             ex.printStackTrace();
         }
     }
-    
+
     public void receive() {
         DatagramSocket socket;
         DatagramPacket packet;
@@ -140,52 +164,52 @@ public class Client {
             ex.printStackTrace();
         }
     }
-    
+
     public void interact() {
         String userEntry;
         Scanner x = new Scanner(System.in);
-        while(true) {
+        while (true) {
             sleep();
             System.out.println("Digite os urls separados por espaço");
             userEntry = x.nextLine();
             ArrayList<String> urls;
-            if( userEntry.contains(" ") ){
+            if (userEntry.contains(" ")) {
                 urls = new ArrayList<String>(Arrays.asList(userEntry.split(" ")));
-            }else{
-                urls = new ArrayList<String>();
+            } else {
+                urls = new ArrayList<>();
                 urls.add(userEntry);
             }
             senderQueue.add(urls);
         }
     }
-    
+
     public void process() {
-        while(true) {
+        while (true) {
             sleep();
             Message m = processQueue.poll();
-            if(m != null) {
+            if (m != null) {
                 processMessage(m);
             }
         }
     }
-    
+
     public void processMessage(Message m) {
-        LinkedTreeMap<String, Set<String>> pointedLinks =
-                (LinkedTreeMap<String, Set<String>>) m.getContent();
+        LinkedTreeMap<String, Set<String>> pointedLinks
+                = (LinkedTreeMap<String, Set<String>>) m.getContent();
         logger.info("Cliente processando mensgem ");
         System.out.println(pointedLinks);
     }
-    
+
     private void cleanBuffer(byte[] buffer) {
-        for(int i = 0; i < buffer.length; i++) {
+        for (int i = 0; i < buffer.length; i++) {
             buffer[i] = 0;
         }
     }
 
-    private void sleep(){
+    private void sleep() {
         try {
             Thread.sleep(1);
-        } catch ( InterruptedException e ){
+        } catch (InterruptedException e) {
             System.out.println(e);
         }
     }
