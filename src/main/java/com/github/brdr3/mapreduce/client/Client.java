@@ -5,13 +5,11 @@ import com.github.brdr3.mapreduce.util.Message.MessageBuilder;
 import com.github.brdr3.mapreduce.util.User;
 import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
@@ -22,7 +20,7 @@ public class Client {
     private final Thread interactor;
     private final Thread processor;
     
-    private ConcurrentLinkedQueue<LinkedList<String>> senderQueue;
+    private ConcurrentLinkedQueue<ArrayList<String>> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
 
     static Logger logger = Logger.getLogger("log4j.properties");
@@ -80,7 +78,7 @@ public class Client {
     
     public void send() {
         while (true) {
-            LinkedList urls = senderQueue.poll();
+            ArrayList urls = senderQueue.poll();
             sleep();
             if(urls != null) {
                 sendMessage(urls);
@@ -88,7 +86,7 @@ public class Client {
         }
     }
     
-    public void sendMessage(LinkedList<String> urls) {
+    public void sendMessage(ArrayList<String> urls) {
         logger.info("CLiente enviando mensagem ");
         Gson gson = new Gson();
         Message m = new MessageBuilder().from(thisUser)
@@ -105,7 +103,7 @@ public class Client {
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                                     m.getTo().getPort());
         try {
-            logger.info("CLiente enviando mensagem bufferSize:" + buffer.length + " to addrs: " + m.getTo().getAddress() + " to port: " + m.getTo().getPort());
+            logger.info("Cliente enviando mensagem bufferSize:" + buffer.length + " to addrs: " + m.getTo().getAddress() + " to port: " + m.getTo().getPort());
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
@@ -150,11 +148,11 @@ public class Client {
             sleep();
             System.out.println("Digite os urls separados por espaço");
             userEntry = x.nextLine();
-            LinkedList<String> urls;
+            ArrayList<String> urls;
             if( userEntry.contains(" ") ){
-                urls = (LinkedList<String>) Arrays.asList(userEntry.split(" "));
+                urls = new ArrayList<String>(Arrays.asList(userEntry.split(" ")));
             }else{
-                urls = new LinkedList<String>();
+                urls = new ArrayList<String>();
                 urls.add(userEntry);
             }
             senderQueue.add(urls);
@@ -172,8 +170,8 @@ public class Client {
     }
     
     public void processMessage(Message m) {
-        HashMap<String, Set<String>> pointedLinks = 
-                (HashMap<String, Set<String>>) m.getContent();
+        LinkedTreeMap<String, Set<String>> pointedLinks =
+                (LinkedTreeMap<String, Set<String>>) m.getContent();
         logger.info("Cliente processando mensgem ");
         System.out.println(pointedLinks);
     }

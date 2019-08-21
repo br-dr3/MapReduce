@@ -58,6 +58,7 @@ public class CoordinatorServer {
         
         for(int i = 0; i < mappers; i++) {
             mapper[i] = new Mapper(new User(i+1, "localhost", 14020+10*i));
+            mapper[i].start();
         }
         
         senderQueue = new ConcurrentLinkedQueue<>();
@@ -84,11 +85,12 @@ public class CoordinatorServer {
     
     public void sendMessage(Message m) {
         Gson gson = new Gson();
-        String jsonMessage = gson.toJson(m);
-        byte buffer[] = new byte[10000];
         DatagramSocket socket;
         DatagramPacket packet;
-        buffer = jsonMessage.getBytes();
+
+        String jsonMessage = gson.toJson(m);
+        byte buffer[] = jsonMessage.getBytes();
+
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                                     m.getTo().getPort());
         try {
@@ -143,13 +145,12 @@ public class CoordinatorServer {
     }
     
     public void processMessage(Message m) {
-        List[] mapperLists;
+        LinkedList[] mapperLists;
         LinkedList<Message> messages = new LinkedList<>();
         logger.info("Processando mensagem");
 
-        if(m.getContent() instanceof ArrayList) {
-            mapperLists = (List[])m.getContent();
-
+        if(m.getContent() instanceof List) {
+            mapperLists = divideList((List) m.getContent());
         }
         else {
             logger.warning("CoordinatorServer Processando mensagem não conseguiu instanciar");
@@ -199,7 +200,7 @@ public class CoordinatorServer {
     private void sleep(){
         try {
             Thread.sleep(100);
-        } catch ( InterruptedException e ){
+        } catch ( Exception e ){
             System.out.println(e);
         }
     }

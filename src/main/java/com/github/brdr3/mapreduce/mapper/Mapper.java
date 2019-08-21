@@ -7,13 +7,16 @@ import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import java.util.List;
 
 public class Mapper {
     private User mapperUser;
@@ -22,7 +25,9 @@ public class Mapper {
     private final Thread processor;
     private final ConcurrentLinkedQueue<Message> processQueue;
     private final ConcurrentLinkedQueue<Message> senderQueue;
-    
+
+    static Logger logger = Logger.getLogger("log4j.properties");
+
     public Mapper(User u) {
         mapperUser = u;
         
@@ -50,6 +55,12 @@ public class Mapper {
         processQueue = new ConcurrentLinkedQueue<>();
         senderQueue = new ConcurrentLinkedQueue<>();
     }
+
+    public void start() {
+        receiver.start();
+        sender.start();
+        processor.start();
+    }
     
     public void receive() {
         DatagramSocket socket;
@@ -70,7 +81,7 @@ public class Mapper {
                                             mapperUser.getPort());
 
                 socket.receive(packet);
-
+                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem chegou e foi add na fila processQueue");
                 jsonMessage = new String(packet.getData()).trim();
                 message = gson.fromJson(jsonMessage, Message.class);
 
@@ -78,7 +89,7 @@ public class Mapper {
                 cleanBuffer(buffer);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> " + ex );
         }
     }
     
@@ -87,6 +98,7 @@ public class Mapper {
             sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
+                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> enviando mensagem");
                 sendMessage(urls);
             }
         }
@@ -95,18 +107,18 @@ public class Mapper {
     public void sendMessage(Message m) {
         Gson gson = new Gson();
         String jsonMessage = gson.toJson(m);
-        byte buffer[] = new byte[65507];
         DatagramSocket socket;
         DatagramPacket packet;
-        buffer = jsonMessage.getBytes();
+        byte buffer[] = jsonMessage.getBytes();
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                                     m.getTo().getPort());
         try {
             socket = new DatagramSocket();
             socket.send(packet);
+            logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem enviada com sucesso");
             socket.close();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem não enviada " + ex );
         }
     }
     
@@ -123,28 +135,32 @@ public class Mapper {
             sleep();
             Message m = processQueue.poll();
             if(m != null) {
+                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem enviada para processamento");
                 processMessage(m);
             }
         }
     }
     
     public void processMessage(Message m) {
-        LinkedList<String> listToProcess;
-        if (m.getContent() instanceof LinkedList)
-            listToProcess = (LinkedList<String>) m.getContent();
-        else
+        List<String> listToProcess;
+        if (m.getContent() instanceof List)
+            listToProcess = (List<String>) m.getContent();
+        else {
+            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() + " -> mensagem fora do padrao");
             return;
-        
-        HashMap<String, LinkedList<String>> linksUrls = new HashMap<>();
+        }
+
+        HashMap<String, List<String>> linksUrls = new HashMap<>();
         Document website;
         Elements links;
         
         for(String url: listToProcess) {
             try {
                 website = Jsoup.connect(url).get();
+                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> acessou o site: <" + url + ">");
                 links = website.select("a[href]");
                 
-                LinkedList<String> linkList = 
+                List<String> linkList =
                     links.stream()
                          .map(l -> l.attr("href"))
                          .collect(Collectors.toCollection(LinkedList :: new));
@@ -152,7 +168,8 @@ public class Mapper {
                 linksUrls.put(url, linkList);
                 
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> não foi possivel acessar o site: <" + url + ">");
+                linksUrls.put(url, new ArrayList<String>());
             }
         }
         
@@ -164,6 +181,7 @@ public class Mapper {
                                         .content(linksUrls)
                                         .requestor(m.getRequestor())
                                         .build();
+        logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem foi adicionada na senderQueue");
         senderQueue.add(messageToReducer);
     }
     
