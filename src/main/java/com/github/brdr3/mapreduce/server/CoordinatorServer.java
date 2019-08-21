@@ -27,14 +27,14 @@ public class CoordinatorServer {
     private final Thread receiver;
     private final Thread processor;
     
-    private Mapper mapper[];
+    private ArrayList<Mapper> mappers;
     
     private ConcurrentLinkedQueue<Message> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
 
     static Logger logger = Logger.getLogger("log4j.properties");
 
-    public CoordinatorServer(int mappers) {
+    public CoordinatorServer() {
         
         sender = new Thread() {
             @Override
@@ -57,17 +57,7 @@ public class CoordinatorServer {
             }
         };
         
-        mapper = new Mapper[mappers];
-        
-        for(int i = 0; i < mappers; i++) {
-            try {
-                mapper[i] = new Mapper(new User(i+1, "localhost", 14020+10*i));
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            mapper[i].start();
-        }
-        
+        mappers = new ArrayList<>();        
         senderQueue = new ConcurrentLinkedQueue<>();
         processQueue = new ConcurrentLinkedQueue<>();
 
@@ -152,6 +142,11 @@ public class CoordinatorServer {
     }
     
     public void processMessage(Message m) {
+        if(m.getContent() instanceof Mapper) {
+            mappers.add((Mapper)m.getContent());
+            return;
+        }
+        
         LinkedList[] mapperLists;
         LinkedList<Message> messages = new LinkedList<>();
         logger.info("Processando mensagem");
@@ -168,7 +163,7 @@ public class CoordinatorServer {
             if(mapperLists[i] != null) {
                 Message messageToMapper = new MessageBuilder().from(coordinatorServer)
                                                        .id(new Long(i))
-                                                       .to(mapper[i].getMapperUser())
+                                                       .to(mappers.get(i).getMapperUser())
                                                        .content(mapperLists[i])
                                                        .requestor(m.getRequestor())
                                                        .build();
@@ -184,7 +179,7 @@ public class CoordinatorServer {
     }
     
     private LinkedList[] divideList(List<String> urls) {
-        LinkedList[] mapperList = new LinkedList [mapper.length];
+        LinkedList[] mapperList = new LinkedList [mappers.size()];
         int size = mapperList.length;
         
         for(int i = 0; i < urls.size(); i++) {

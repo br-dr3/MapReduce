@@ -38,19 +38,7 @@ public class Client {
 
         try {
             String address = null;
-            Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
             
-            while(en.hasMoreElements() && address == null) {
-                NetworkInterface ni = en.nextElement();
-                Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-
-                while (inetAddresses.hasMoreElements() && address == null) {
-                    InetAddress ia = inetAddresses.nextElement();
-                    if (!ia.isLinkLocalAddress()) {
-                        address = ia.getHostAddress();
-                    }
-                }
-            }
 
             int port = 14000;
             thisUser = new User(0, address, port);

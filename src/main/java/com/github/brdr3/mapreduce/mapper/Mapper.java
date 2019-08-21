@@ -28,8 +28,8 @@ public class Mapper {
 
     static Logger logger = Logger.getLogger("log4j.properties");
 
-    public Mapper(User u) {
-        mapperUser = u;
+    public Mapper(int port) {
+        mapperUser = new User(-2, Constants.getRealInetAddress(), port);
         
         receiver = new Thread() {
             @Override
@@ -54,6 +54,13 @@ public class Mapper {
         
         processQueue = new ConcurrentLinkedQueue<>();
         senderQueue = new ConcurrentLinkedQueue<>();
+        
+        Message m = new MessageBuilder()
+                               .to(Constants.coordinatorServer)
+                               .from(mapperUser)
+                               .content(this)
+                               .build();
+        senderQueue.add(m);
     }
 
     public void start() {
