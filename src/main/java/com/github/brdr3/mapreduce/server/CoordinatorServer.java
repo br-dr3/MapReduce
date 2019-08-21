@@ -27,7 +27,7 @@ public class CoordinatorServer {
     private final Thread receiver;
     private final Thread processor;
     
-    private ArrayList<Mapper> mappers;
+    private ArrayList<User> mappers;
     
     private ConcurrentLinkedQueue<Message> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
@@ -142,8 +142,8 @@ public class CoordinatorServer {
     }
     
     public void processMessage(Message m) {
-        if(m.getContent() instanceof Mapper) {
-            mappers.add((Mapper)m.getContent());
+        if(m.getContent() instanceof User) {
+            mappers.add((User)m.getContent());
             return;
         }
         
@@ -163,7 +163,7 @@ public class CoordinatorServer {
             if(mapperLists[i] != null) {
                 Message messageToMapper = new MessageBuilder().from(coordinatorServer)
                                                        .id(new Long(i))
-                                                       .to(mappers.get(i).getMapperUser())
+                                                       .to(mappers.get(i))
                                                        .content(mapperLists[i])
                                                        .requestor(m.getRequestor())
                                                        .build();

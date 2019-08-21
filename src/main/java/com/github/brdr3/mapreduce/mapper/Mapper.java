@@ -58,7 +58,7 @@ public class Mapper {
         Message m = new MessageBuilder()
                                .to(Constants.coordinatorServer)
                                .from(mapperUser)
-                               .content(this)
+                               .content(mapperUser)
                                .build();
         senderQueue.add(m);
     }
