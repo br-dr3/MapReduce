@@ -6,6 +6,7 @@ import com.github.brdr3.mapreduce.util.Message.MessageBuilder;
 import com.github.brdr3.mapreduce.util.User;
 import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
 
 import java.lang.reflect.Array;
 import java.net.DatagramPacket;
@@ -142,8 +143,12 @@ public class CoordinatorServer {
     }
     
     public void processMessage(Message m) {
-        if(m.getContent() instanceof User) {
-            mappers.add((User)m.getContent());
+        if(m.getContent() instanceof LinkedTreeMap) {
+            Gson gson = new Gson();
+            String content = gson.toJson(m.getContent());
+            User u = gson.fromJson(content, User.class);
+            mappers.add(u);
+            System.out.println(mappers);
             return;
         }
         
