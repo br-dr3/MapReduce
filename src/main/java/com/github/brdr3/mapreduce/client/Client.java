@@ -5,6 +5,9 @@ import com.github.brdr3.mapreduce.util.Message.MessageBuilder;
 import com.github.brdr3.mapreduce.util.User;
 import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.internal.LinkedTreeMap;
 
 import java.io.File;
@@ -224,10 +227,14 @@ public class Client {
 
         Gson g = new Gson();
         String pointedLinksString = g.toJson(pointedLinks);
+        JsonParser parser = new JsonParser();
+        JsonObject json = parser.parse(pointedLinksString).getAsJsonObject();
+        g = new GsonBuilder().setPrettyPrinting().create();
+        String prettyPointedLinks = g.toJson(json);
 
-        Path file = Paths.get("inverted_links.txt");
+        Path file = Paths.get(clientFolder.getPath() + "/inverted_links.txt");
         try {
-            Files.write(file, Collections.singleton(pointedLinksString), StandardCharsets.UTF_8);
+            Files.write(file, Collections.singleton(prettyPointedLinks), StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.warning("Cliente" + thisUser + " não conseguiu instanciar arquivo de resposta.");
             throw new RuntimeException("Unable to create answer file.");
