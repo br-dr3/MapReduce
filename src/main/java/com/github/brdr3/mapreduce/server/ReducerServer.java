@@ -57,7 +57,6 @@ public class ReducerServer {
             sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
-                logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> enviando mensagem");
                 sendMessage(urls);
             }
         }
@@ -70,6 +69,7 @@ public class ReducerServer {
     }
     
     public void sendMessage(Message m) {
+        logger.info("ReducerServer" + reducerServer +" -> enviando mensagem");
         Gson gson = new Gson();
         String jsonMessage = gson.toJson(m);
         DatagramSocket socket;
@@ -81,9 +81,9 @@ public class ReducerServer {
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
-            logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> mensagem enviada com sucesso");
+            logger.info("ReducerServer" + reducerServer +" -> mensagem enviada com sucesso");
         } catch (Exception ex) {
-            logger.warning("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +"-> mensagem não enviada" + ex );
+            logger.warning("ReducerServer" + reducerServer +"-> mensagem não enviada" + ex );
         }
     }
     
@@ -102,16 +102,16 @@ public class ReducerServer {
                 packet = new DatagramPacket(buffer, buffer.length, reducerServer.getAddress(), reducerServer.getPort());
 
                 socket.receive(packet);
-                logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> mensagem recebida com sucesso");
+                logger.info("ReducerServer" + reducerServer +" -> mensagem recebida com sucesso.");
                 jsonMessage = new String(packet.getData()).trim();
                 message = gson.fromJson(jsonMessage, Message.class);
 
                 processQueue.add(message);
-                logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> mensagem adicionada na processQueue ");
+                logger.info("ReducerServer" + reducerServer +" -> mensagem adicionada na processQueue.");
                 cleanBuffer(buffer);
             }
         } catch (Exception ex) {
-            logger.warning("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> falha no recive" + ex);
+            logger.warning("ReducerServer" + reducerServer +" -> falha no recebimento. " + ex);
         }
     }
     
@@ -120,21 +120,20 @@ public class ReducerServer {
             sleep();
             Message m = processQueue.poll();
             if(m != null) {
-                logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> mensagem enviada para processamento ");
                 processMessage(m);
             }
         }
     }
     
     public void processMessage(Message m) {
-
+        logger.info("ReducerServer" + reducerServer +" -> mensagem enviada para processamento.");
         if(history.containsKey(m.getRequestor())) {
-            logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> requestor <" + m.getRequestor() + "> já instanciado. Nova mensagem add ");
+            logger.info("ReducerServer" + reducerServer +" -> requestor <" + m.getRequestor() + "> já instanciado. Nova mensagem do mapper add.");
             LinkedList<Message> auxiliar = history.get(m.getRequestor());
             auxiliar.add(m);
             history.put(m.getRequestor(), auxiliar);
         } else {
-            logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> novo requestor <" + m.getRequestor() + ">. Nova mensagem add ");
+            logger.info("ReducerServer" + reducerServer +" -> novo requestor <" + m.getRequestor() + ">. Nova mensagem do mapper add.");
             LinkedList<Message> auxiliar = new LinkedList<>();
             auxiliar.add(m);
             history.put(m.getRequestor(), auxiliar);
@@ -143,9 +142,9 @@ public class ReducerServer {
         LinkedList<Message> mapperList = history.get(m.getRequestor());
         
         if(m.getEnd().equals(new Long(mapperList.size()))) {
-            logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> todas as mensagens para o requestor <" + m.getRequestor() + "> chegaram. Reduzindo");
+            logger.info("ReducerServer" + reducerServer +" -> todas as mensagens para o requestor <" + m.getRequestor() + "> chegaram. Reduzindo");
             reduce(m.getRequestor());
-            logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> limpando requisição para o requestor <" + m.getRequestor() + ">.");
+            logger.info("ReducerServer" + reducerServer +" -> limpando requisição para o requestor <" + m.getRequestor() + ">.");
             history.remove(m.getRequestor());
         }
     }
@@ -178,7 +177,7 @@ public class ReducerServer {
                             .to(requestor)
                             .from(reducerServer)
                             .build();
-        logger.info("ReducerServer@" + reducerServer.getAddress() + ":" + reducerServer.getPort() +" -> add mensagem na fila sendQueue");
+        logger.info("ReducerServer" + reducerServer +" -> add mensagem na fila sendQueue");
         senderQueue.add(messageToClient);
     }
     

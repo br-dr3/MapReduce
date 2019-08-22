@@ -2,11 +2,14 @@ package com.github.brdr3.mapreduce.util;
 
 import java.net.InetAddress;
 import java.util.Objects;
+import java.util.logging.Logger;
+
 
 public class User {
     int id;
     private InetAddress address;
     private int port;
+    static Logger logger = Logger.getLogger("log4j.properties");
 
     public User(int id, String address, int port) {
         this.id = id;
@@ -16,9 +19,7 @@ public class User {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        
-        System.out.println(this.address);
-        
+
         this.port = port;
     }
 
@@ -78,6 +79,7 @@ public class User {
     
     @Override
     public String toString() {
-        return "P"+this.id+"@"+this.address.getHostName()+":"+this.port;
+        return "@"+this.address.getHostName()+":"+this.port;
     }
+
 }

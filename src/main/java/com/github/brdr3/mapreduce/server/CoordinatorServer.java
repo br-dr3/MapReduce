@@ -62,7 +62,7 @@ public class CoordinatorServer {
         senderQueue = new ConcurrentLinkedQueue<>();
         processQueue = new ConcurrentLinkedQueue<>();
 
-        logger.info("CoordinatorServer instanciado com sucesso");
+        logger.info("CoordinatorServer" + coordinatorServer + " -> instanciado com sucesso");
     }
     
     public void start() {
@@ -92,11 +92,11 @@ public class CoordinatorServer {
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                                     m.getTo().getPort());
         try {
-            logger.info("CoordinatorServer enviando mensagem buffersize: " + buffer.length + " toAddr: " + m.getTo().getAddress() + " toPort" + m.getTo().getPort());
+            logger.info("CoordinatorServer" + coordinatorServer + " -> enviando mensagem User" + m.getTo() );
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
-            logger.info("CoordinatorServer enviando mensagem sucesso buffersize: " + buffer.length + " toAddr: " + m.getTo().getAddress() + " toPort" + m.getTo().getPort());
+            logger.info("CoordinatorServer" + coordinatorServer + " -> mensagem enviada User" + m.getTo() );
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -114,21 +114,18 @@ public class CoordinatorServer {
             socket = new DatagramSocket(coordinatorServer.getPort());
             while (true) {
                 sleep();
-                logger.info("Recebendo mensagem buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
+
                 packet = new DatagramPacket(buffer, buffer.length, coordinatorServer.getAddress(), coordinatorServer.getPort());
 
                 socket.receive(packet);
-
                 jsonMessage = new String(packet.getData()).trim();
                 message = gson.fromJson(jsonMessage, Message.class);
-
                 processQueue.add(message);
                 cleanBuffer(buffer);
-                logger.info("Sucesso buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
+                logger.info("CoordinatorServer" + coordinatorServer + " -> mensagem recebida e adicionada na fila User" + message.getFrom() );
             }
         } catch (Exception ex) {
-            logger.warning("Erro " + ex + " buffersize: " + buffer.length + " toAddr: " + coordinatorServer.getAddress() + " toPort " + coordinatorServer.getPort());
-            ex.printStackTrace();
+            logger.info("CoordinatorServer" + coordinatorServer + " -> erro ao receber mensagem." + ex );
         }
     }
     
@@ -148,23 +145,25 @@ public class CoordinatorServer {
             String content = gson.toJson(m.getContent());
             User u = gson.fromJson(content, User.class);
             mappers.add(u);
-            System.out.println(mappers);
+            logger.info("CoordinatorServer" + coordinatorServer + " -> novo mapper identificado. Mappper" + u );
             return;
         }
-        
+
+
+
         LinkedList[] mapperLists;
         LinkedList<Message> messages = new LinkedList<>();
-        logger.info("Processando mensagem");
 
         if(m.getContent() instanceof List) {
             mapperLists = divideList((List) m.getContent());
+            logger.info("CoordinatorServer" + coordinatorServer + " -> Mensagem do cliente foi dividida em " + mapperLists.length+ ". Cliente" + m.getFrom() );
         }
         else {
-            logger.warning("CoordinatorServer Processando mensagem não conseguiu instanciar");
+            logger.info("CoordinatorServer" + coordinatorServer + " -> Mensagem em formato desconhecido" );
             return;
         }
-        
         for(int i = 0; i < mapperLists.length; i++) {
+
             if(mapperLists[i] != null) {
                 Message messageToMapper = new MessageBuilder().from(coordinatorServer)
                                                        .id(new Long(i))
@@ -177,9 +176,9 @@ public class CoordinatorServer {
         }
         
         for(Message message: messages) {
-            logger.info("Mensagem enviando para fila id: " + message.getId());
             message.setEnd(new Long(messages.size()));
             senderQueue.add(message);
+            logger.info("CoordinatorServer" + coordinatorServer + " -> Mensagem colocada na lista de envio. Mapper" + message.getTo() );
         }
     }
     

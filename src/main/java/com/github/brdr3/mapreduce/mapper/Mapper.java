@@ -61,6 +61,7 @@ public class Mapper {
                                .content(mapperUser)
                                .build();
         senderQueue.add(m);
+        logger.info("Mapper" + mapperUser + " -> avisando coordenador.");
     }
 
     public void start() {
@@ -88,15 +89,15 @@ public class Mapper {
                                             mapperUser.getPort());
 
                 socket.receive(packet);
-                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem chegou e foi add na fila processQueue");
                 jsonMessage = new String(packet.getData()).trim();
                 message = gson.fromJson(jsonMessage, Message.class);
-
                 processQueue.add(message);
+                logger.info("Mapper" + mapperUser + " -> mensagem chegou e foi add na fila processQueue");
                 cleanBuffer(buffer);
+
             }
         } catch (Exception ex) {
-            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> " + ex );
+            logger.warning("Mapper" + mapperUser +" -> " + ex );
         }
     }
     
@@ -105,7 +106,7 @@ public class Mapper {
             sleep();
             Message urls = senderQueue.poll();
             if(urls != null) {
-                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> enviando mensagem");
+                logger.info("Mapper" + mapperUser +" -> enviando mensagem");
                 sendMessage(urls);
             }
         }
@@ -122,10 +123,10 @@ public class Mapper {
         try {
             socket = new DatagramSocket();
             socket.send(packet);
-            logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem enviada com sucesso");
+            logger.info("Mapper" + mapperUser +" -> mensagem enviada com sucesso");
             socket.close();
         } catch (Exception ex) {
-            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem não enviada " + ex );
+            logger.warning("Mapper" + mapperUser +" -> mensagem não enviada " + ex );
         }
     }
     
@@ -142,7 +143,7 @@ public class Mapper {
             sleep();
             Message m = processQueue.poll();
             if(m != null) {
-                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem enviada para processamento");
+                logger.info("Mapper" + mapperUser +" -> mensagem enviada para processamento");
                 processMessage(m);
             }
         }
@@ -153,18 +154,19 @@ public class Mapper {
         if (m.getContent() instanceof List)
             listToProcess = (List<String>) m.getContent();
         else {
-            logger.warning("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() + " -> mensagem fora do padrao");
+            logger.warning("Mapper" + mapperUser + " -> mensagem fora do padrao");
             return;
         }
 
         HashMap<String, List<String>> linksUrls = new HashMap<>();
         Document website;
         Elements links;
-        
+
+        logger.info("Mapper" + mapperUser +" -> Processando lista com " + listToProcess.size() + " urls");
         for(String url: listToProcess) {
             try {
                 website = Jsoup.connect(url).get();
-                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> acessou o site: <" + url + ">");
+                logger.info("Mapper" + mapperUser +" -> acessou o site: <" + url + ">");
                 links = website.select("a[href]");
                 
                 List<String> linkList =
@@ -175,7 +177,7 @@ public class Mapper {
                 linksUrls.put(url, linkList);
                 
             } catch (Exception ex) {
-                logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> não foi possivel acessar o site: <" + url + ">");
+                logger.warning("Mapper" + mapperUser +" -> não foi possivel acessar o site: <" + url + ">");
                 linksUrls.put(url, new ArrayList<String>());
             }
         }
@@ -188,7 +190,7 @@ public class Mapper {
                                         .content(linksUrls)
                                         .requestor(m.getRequestor())
                                         .build();
-        logger.info("Mapper@" + mapperUser.getAddress() + ":" + mapperUser.getPort() +" -> mensagem foi adicionada na senderQueue");
+        logger.info("Mapper" + mapperUser + " -> mensagem foi adicionada na senderQueue");
         senderQueue.add(messageToReducer);
     }
     

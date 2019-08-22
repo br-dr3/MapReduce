@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 
 public class Constants {
 
-    public static User coordinatorServer = new User(-1, "192.168.43.195", 14010);
+    public static User coordinatorServer = new User(-1, "192.168.43.79", 14010);
     public static User reducerServer = new User(-2, "192.168.43.195", 12000);
     
     public static String getRealInetAddress() {

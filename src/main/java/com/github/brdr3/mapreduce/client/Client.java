@@ -7,17 +7,20 @@ import com.github.brdr3.mapreduce.util.constants.Constants;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.Scanner;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Logger;
 
@@ -25,9 +28,11 @@ public class Client {
 
     private final User thisUser;
     private final Thread sender;
-    private final Thread receiver;
+//    private final Thread receiver;
     private final Thread interactor;
     private final Thread processor;
+
+    private File clientFolder = null;
 
     private ConcurrentLinkedQueue<ArrayList<String>> senderQueue;
     private ConcurrentLinkedQueue<Message> processQueue;
@@ -35,15 +40,13 @@ public class Client {
     static Logger logger = Logger.getLogger("log4j.properties");
 
     public Client() {
-
+        int port = 14000;
         try {
-            String address = null;
-            
-
-            int port = 14000;
+            String address = Constants.getRealInetAddress();
             thisUser = new User(0, address, port);
-            logger.info("Cliente instanciada com sucesso addr: " + address + " port: " + port);
+            logger.info("Cliente@" + address + ":" + port + " instanciada com sucesso");
         } catch (Exception ex) {
+            logger.info("Cliente@" + port +" não foi instanciado");
             throw new RuntimeException("It was not possible to create the User.");
         }
 
@@ -54,12 +57,12 @@ public class Client {
             }
         };
 
-        receiver = new Thread() {
-            @Override
-            public void run() {
-                receive();
-            }
-        };
+//        receiver = new Thread() {
+//            @Override
+//            public void run() {
+//                receive();
+//            }
+//        };
 
         interactor = new Thread() {
             @Override
@@ -80,9 +83,8 @@ public class Client {
     }
 
     public void start() {
-        logger.info("CLiente start ");
         sender.start();
-        receiver.start();
+//        receiver.start();
         interactor.start();
         processor.start();
     }
@@ -98,7 +100,7 @@ public class Client {
     }
 
     public void sendMessage(ArrayList<String> urls) {
-        logger.info("Cliente enviando mensagem ");
+
         Gson gson = new Gson();
         Message m = new MessageBuilder().from(thisUser)
                 .to(Constants.coordinatorServer)
@@ -113,15 +115,15 @@ public class Client {
         buffer = jsonMessage.getBytes();
         packet = new DatagramPacket(buffer, buffer.length, m.getTo().getAddress(),
                 m.getTo().getPort());
+        logger.info("Cliente" + thisUser + " enviando mensagem para CoordinatorServer" + Constants.coordinatorServer + " com " + urls.size() + " urls." );
         try {
-            logger.info("Cliente enviando mensagem bufferSize:" + buffer.length + " to addrs: " + m.getTo().getAddress() + " to port: " + m.getTo().getPort());
             socket = new DatagramSocket();
             socket.send(packet);
             socket.close();
-            logger.info("Mensagem enviada:" + m.toString());
+            logger.info("Cliente" + thisUser + " mensagem enviada para CoordinatorServer" + Constants.coordinatorServer + " com " + urls.size() + " urls.");
         } catch (Exception ex) {
-            logger.warning("Cliente não conseguiu enviar mensagem " + ex);
-            ex.printStackTrace();
+            logger.info("Cliente" + thisUser + " não conseguiu enviar mensagem" + Constants.coordinatorServer + " com " + urls.size() + " urls. " + ex);
+
         }
     }
 
@@ -135,19 +137,17 @@ public class Client {
 
         try {
             socket = new DatagramSocket(thisUser.getPort());
-            while (true) {
+//            while (true) {
                 sleep();
-
                 packet = new DatagramPacket(buffer, buffer.length, thisUser.getAddress(), thisUser.getPort());
-
                 socket.receive(packet);
-                logger.info("Cliente mensagem chegou e foi add na fila processQueue");
                 jsonMessage = new String(packet.getData()).trim();
                 message = gson.fromJson(jsonMessage, Message.class);
 
                 processQueue.add(message);
+                logger.info("Cliente" + thisUser +  " mensagem chegou e foi add na fila processQueue");
                 cleanBuffer(buffer);
-            }
+//            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -155,10 +155,36 @@ public class Client {
 
     public void interact() {
         String userEntry;
-        Scanner x = new Scanner(System.in);
+        File file;
+        Scanner x = null;
+
+        if(clientFolder == null) {
+            clientFolder = new File(System.getProperty("user.home") + "/Desktop/Client");
+            if(!clientFolder.exists()) {
+                logger.info("Cliente" + thisUser +  " criando diretório para acesso de arquivos.");
+                if(clientFolder.mkdir()) {
+                    logger.info("Cliente" + thisUser +  " diretório criado com sucesso.");
+                } else {
+                    logger.warning("Cliente" + thisUser +  " não conseguiu criar o diretório.");
+                    throw new RuntimeException("Failed to create directory.");
+                }
+            }
+        }
+
         while (true) {
+            file = new File(clientFolder.getPath() + "/urls.txt");
+            if(!file.exists()) {
+                sleep();
+                continue;
+            }
+
+            try {
+                x = new Scanner(file);
+            } catch (Exception e) {
+                logger.warning("Cliente" + thisUser +  " não conseguiu encontrar o arquivo urls.txt.");
+            }
+
             sleep();
-            System.out.println("Digite os urls separados por espaço");
             userEntry = x.nextLine();
             ArrayList<String> urls;
             if (userEntry.contains(" ")) {
@@ -168,6 +194,16 @@ public class Client {
                 urls.add(userEntry);
             }
             senderQueue.add(urls);
+            logger.info("Cliente" + thisUser.toString() + " add a mensagem na fila senderQueue. Renomeando arquivo");
+
+            boolean b = file.renameTo(new File(clientFolder.getPath() + "/urls_processed.txt"));
+
+            if(!b) {
+                logger.warning("Cliente" + thisUser.toString() + " não conseguiu renomear o arquivo");
+                throw new RuntimeException("Unable to rename file");
+            } else {
+                receive();
+            }
         }
     }
 
@@ -184,8 +220,18 @@ public class Client {
     public void processMessage(Message m) {
         LinkedTreeMap<String, Set<String>> pointedLinks
                 = (LinkedTreeMap<String, Set<String>>) m.getContent();
-        logger.info("Cliente processando mensgem ");
-        System.out.println(pointedLinks);
+        logger.info("Cliente" + thisUser + " mensagem sendo processada");
+
+        Gson g = new Gson();
+        String pointedLinksString = g.toJson(pointedLinks);
+
+        Path file = Paths.get("inverted_links.txt");
+        try {
+            Files.write(file, Collections.singleton(pointedLinksString), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.warning("Cliente" + thisUser + " não conseguiu instanciar arquivo de resposta.");
+            throw new RuntimeException("Unable to create answer file.");
+        }
     }
 
     private void cleanBuffer(byte[] buffer) {
